@@ -11,3 +11,6 @@ canvas {
   margin: auto;
   display: block;
 }
+#hide{
+	display: none;
+}

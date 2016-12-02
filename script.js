@@ -8,30 +8,22 @@ var player = {
   y: Height / 2 - 5,
   h: 28,
   w: 56,
-  speed: 4
+  speed: 4,
+  texture: document.getElementById("playership"),
+  textureidle1: document.getElementById("playership"),
+  textureidle2: document.getElementById("playership2"),
+  textureSlow: document.getElementById("playershipSlow"),
+  textureTurbo: document.getElementById("playershipTurbo")
 };
 let oldTime = Date.now(), weaponDelay = 500, projectilesArray = [], gameOver = false,
   enemiesArray = [], lastSpawn = 0, enemyNum = Math.floor((Math.random() * 25) + 75), // between 75-100 enemies, NOT USED
-  playerTexture = "./images/spaceship.png", enemProjTexture = "./images/enemyProj.png", playerProjTexture = "./images/playerProj.png", enemyTexture = "./images/enemyship1.png",
   gifDate = Date.now();
-
-// enemies and projectiles destroy themselves if they go out of canvas
-Object.prototype.suicide = function(){
-  if(this.x + this.w < 0 || this.x > Width)
-    return true;  
-  return false;
-}
 
 function checkCollision(elem1,elem2){
   if (elem1.x < elem2.x + elem2.w && elem1.x + elem1.w > elem2.x &&
    elem1.y < elem2.y + elem2.h && elem1.h + elem1.y > elem2.y)
     return true;
   return false;
-}
-
-function gameOVER(){
-  gameOver = true;
-  console.log("Game Over")
 }
 
 function Projectile(x,y,enemy){
@@ -44,11 +36,13 @@ function Projectile(x,y,enemy){
     this.color = "red";
     this.w = 14;
     this.speed = Math.floor((Math.random() * 8)) + 6;
+    this.texture = document.getElementById("enemyProj");
   }else{
     this.enemy = false;
     this.color = "white";
     this.w = 7;
     this.speed = 10;
+    this.texture = document.getElementById("playerProj");
   }
 }
 function Enemy(){
@@ -59,13 +53,25 @@ function Enemy(){
   this.speed = Math.floor((Math.random() * 5)) + 1;
   this.fireTime = Date.now();
   this.fireRate = Math.floor((Math.random() * 1500)) + 500;
+  this.texture = document.getElementById("enemyship")
 }
+// enemy shoot function
 Enemy.prototype.projectile = function(){
   let time = Date.now();
   if(time > this.fireTime + this.fireRate){
     this.fireTime = time;
     projectilesArray.push(new Projectile(this.x-10,this.y+this.h/2,true));
   }
+}
+// enemies and projectiles destroy themselves if they go out of canvas
+Object.prototype.suicide = function(){
+  if(this.x + this.w < 0 || this.x > Width)
+    return true;  
+  return false;
+}
+// every object draws itself
+Object.prototype.drawTexture = function(){
+  ctx.drawImage(this.texture, this.x, this.y, this.w, this.h);
 }
 
 function KeyListener() {
@@ -88,30 +94,25 @@ KeyListener.prototype.addKeyPressListener = function (keyCode, callback) {
   });
 };
 var keys = new KeyListener();
+
 // choose player image when static
 function animate(a,b,date){
   if(date > gifDate + 200){
     gifDate = date;
-    ((playerTexture === a) ? playerTexture = b : playerTexture = a);
+    ((player.texture === a) ? player.texture = b : player.texture = a);
   }
-}
-
-function drawTexture(texture,elem){
-  let image = new Image();
-  image.src = texture;
-  ctx.drawImage(image, elem.x, elem.y, elem.w, elem.h);
 }
 
 function move(){
   let date = Date.now();
-  animate("./images/spaceship.png","./images/spaceship2.png",date);  
+  animate(player.textureidle1,player.textureidle2,date);  
   if ((keys.isPressed(65) || keys.isPressed(37)) && player.x > 0){
     player.x -= player.speed; // LEFT
-    playerTexture = "./images/spaceshipSlow.png";
+    player.texture = player.textureSlow;
   }
   if ((keys.isPressed(68) || keys.isPressed(39)) && player.x + player.w < Width){
     player.x += player.speed; // RIGHT
-    playerTexture = "./images/spaceshipTurbo.png";
+    player.texture = player.textureTurbo;
   }
   if ((keys.isPressed(87) || keys.isPressed(38)) && player.y > 0)
     player.y -= player.speed; // UP
@@ -173,12 +174,12 @@ function move(){
   }
   // delete unused proj
   for (var i = projLength -1; i >= 0; i--){
-    if(projectilesArray[i].suicide(projectilesArray[i].x,projectilesArray[i].w))
+    if(projectilesArray[i].suicide())
       projectilesArray.splice(i,1);
   }
   // delete unused enemies
   for (var i = enemiesLength -1; i >= 0; i--){
-    if(enemiesArray[i].suicide(enemiesArray[i].x,enemiesArray[i].w))
+    if(enemiesArray[i].suicide())
       enemiesArray.splice(i,1);
   }
 }
@@ -190,18 +191,18 @@ function draw() {
   ctx.fillRect(0, 0, Width, Height);
   // projectiles  
   for(var i = 0, projLength = projectilesArray.length; i < projLength; ++i){
-    let projTexture = "";
-    if(projectilesArray[i].enemy)      
-      projTexture = enemProjTexture;
-    else
-      projTexture = playerProjTexture;
-    drawTexture(projTexture, projectilesArray[i]);
+    projectilesArray[i].drawTexture();
   }
   //enemies
   for (var i = 0, enemiesLength = enemiesArray.length; i < enemiesLength; ++i)
-    drawTexture(enemyTexture,enemiesArray[i])
+    enemiesArray[i].drawTexture();
   // player
-  drawTexture(playerTexture,player);
+  player.drawTexture();
+}
+
+function gameOVER(){
+  gameOver = true;
+  console.log("Game Over")
 }
 
 function loop() {

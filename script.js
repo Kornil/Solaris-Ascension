@@ -1,37 +1,89 @@
+'use strict';
+
 const Height = 500, Width = 950,
-  c = document.getElementById("canvas"), ctx = c.getContext("2d");
+  c = document.getElementById("canvas"), ctx = c.getContext("2d"),
+  texture = {
+    playerIdle1: document.getElementById("playership"),
+    playerIdle2: document.getElementById("playership2"),
+    playerTurbo: document.getElementById("playershipTurbo"),
+    playerSlow: document.getElementById("playershipSlow"),
+    enemyProj: document.getElementById("enemyProj"),
+    playerProj: document.getElementById("playerProj"),
+    enemyCruiser: document.getElementById("enemyCruiser"),
+    cruiserProj: document.getElementById("cruiserProj2"),
+  },
+  shiptype = {
+    cruiser: "cruiser",
+    frigate: "frigate"
+  };
+
 let projectilesArray = [], gameOver = false, enemiesArray = [], lastSpawn = 0,
   enemyNum = Math.floor((Math.random() * 25) + 75); // between 75-100 enemies, NOT USED
 
-let player = {
-  x: 50,
-  y: Height / 2 - 5,
-  h: 28,
-  w: 56,
-  speed: 4,
-  weaponDelay: 500,
-  gifDate: Date.now(),
-  shootDate: Date.now(),
-  texture: document.getElementById("playership"),
-  textureidle1: document.getElementById("playership"),
-  textureidle2: document.getElementById("playership2"),
-  textureSlow: document.getElementById("playershipSlow"),
-  textureTurbo: document.getElementById("playershipTurbo"),
-  animate: function(){
+class allPrototypes {
+  suicide(){
+    if(this.x + this.w < 0 || this.x > Width || this.y + this.h < 0 || this.y > Height)
+      return true;
+    return false;
+  }
+  drawTexture(){
+    ctx.drawImage(this.texture, this.x, this.y, this.w, this.h);
+  }
+  move(){
+    //((this.enemy) ? this.x -= this.speedX : this.x += this.speedX);
+    if(this.enemy){
+      if(this.type && this.type == shiptype.cruiser && this.goleft){
+        this.x -= this.speedX;
+        if(this.x < Width*0.8)
+          this.goleft = false;
+      }else if(this.type && this.type == shiptype.cruiser && !this.goleft){        
+        this.x += this.speedX;
+        if(this.x > Width-this.w)
+          this.goleft = true;
+      }else{   
+        this.x -= this.speedX;
+      }
+    }else{
+      this.x += this.speedX;
+    }
+  }
+  checkCollision(elem){
+    if (this.x < elem.x + elem.w && this.x + this.w > elem.x &&
+     this.y < elem.y + elem.h && this.h + this.y > elem.y)
+      return true;
+    return false;
+  }
+}
+
+class Player extends allPrototypes {
+  constructor(){
+    super();
+    this.x = 50;
+    this.y = Height / 2 - 5;
+    this.h = 28;
+    this.w = 56;
+    this.speed = 4;
+    this.weaponDelay = 200;
+    this.gifDate = Date.now();
+    this.shootDate = Date.now();
+    this.texture = texture.playerIdle1;
+  }; 
+  // prototypes of Player constructor
+  animate(){
     let date = Date.now();
     if(date > this.gifDate + 200){
-      ((this.texture === this.textureidle1) ? this.texture=this.textureidle2 : this.texture=this.textureidle1);      
+      ((this.texture === texture.playerIdle1) ? this.texture=texture.playerIdle2 : this.texture=texture.playerIdle1);      
       this.gifDate = date;
     }
-  },
-  move: function(){
+  };
+  keyMove(){
     if ((keys.isPressed(65) || keys.isPressed(37)) && this.x > 0){
       this.x -= this.speed; // LEFT
-      this.texture = this.textureSlow;
+      this.texture = texture.playerSlow;
     }
     if ((keys.isPressed(68) || keys.isPressed(39)) && this.x + this.w < Width){
       this.x += this.speed; // RIGHT
-      this.texture = this.textureTurbo;
+      this.texture = texture.playerTurbo;
     }
     if ((keys.isPressed(87) || keys.isPressed(38)) && this.y > 0) this.y -= this.speed; // UP
     if ((keys.isPressed(83) || keys.isPressed(40)) && this.y + this.h < Height) this.y += this.speed; // DOWN
@@ -43,65 +95,79 @@ let player = {
         this.shootDate = date;
       }
     }
+  };
+};
+let player = new Player();
+
+class Projectile extends allPrototypes {
+  constructor(x,y,enemy,type){
+    super();
+    this.h = 7;
+    this.x = x;
+    this.y = y;
+    if(enemy){
+      this.enemy = true;
+      if(type == shiptype.cruiser){
+        this.h = 16;
+        this.w = 20;
+        this.speedX = 4;
+        this.speedY = 2;
+        this.texture = texture.cruiserProj;
+      }else{  
+        this.speedX = 7;
+        this.texture = texture.enemyProj;
+        this.w = 14;
+      }
+    }else{
+      this.w = 7;
+      this.speedX = 10;
+      this.texture = texture.playerProj;
+    }
   }
 };
 
-function Projectile(x,y,enemy){
-  this.h = 7;
-  this.x = x;
-  this.y = y;
-  if(enemy){
-    this.enemy = true;
-    this.w = 14;
-    this.speed = Math.floor((Math.random() * (8-6+1))) + 6;
-    this.texture = document.getElementById("enemyProj");
-  }else{
-    this.w = 7;
-    this.speed = 10;
-    this.texture = document.getElementById("playerProj");
+function enemyType(){
+  let rand = Math.floor(Math.random() * 10) + 1,
+    countCruisers = 0;
+    enemiesArray.map( function(i){if(i.type == shiptype.cruiser) countCruisers++});
+  if(rand <= 2 && countCruisers < 3){
+    return shiptype.cruiser;
   }
+  return shiptype.frigate;
 }
 
-function Enemy(){
-  this.w = 56;
-  this.h = 56;
-  this.x = Width-10;
-  this.enemy = true;
-  this.y = Math.floor((Math.random() * (Height - this.h*2+1))) + this.h;
-  this.speed = Math.floor((Math.random() * 5)) + 1;
-  this.fireTime = Date.now();
-  this.fireRate = Math.floor((Math.random() * (1500-500+1))) + 500;
-  this.texture = document.getElementById("enemyship")
-}
-// enemy shoot function
-Enemy.prototype.projectile = function(){
-  let time = Date.now();
-  if(time > this.fireTime + this.fireRate){
-    this.fireTime = time;
-    projectilesArray.push(new Projectile(this.x-10,this.y+this.h/2,true));
+class Enemy extends allPrototypes {
+  constructor(type){
+    super();
+    if(type == shiptype.cruiser){
+      this.w = 56;
+      this.h = 56;
+      this.type = type;
+      this.speedX = 0.5;
+      this.fireRate = 3500;
+      this.goleft = true;
+      this.texture = texture.enemyCruiser;
+    }else{
+      this.w = 28;
+      this.h = 28;
+      this.type = type;
+      this.speedX = 2;
+      this.fireRate = 1500;
+      this.texture = texture.enemyCruiser;
+    }
+    this.x = Width-10;
+    this.enemy = true;
+    this.fireTime = 0;
+    this.y = Math.floor(Math.random() * (Height - (this.h*2) + 1));
   }
-}
-// enemies and projectiles destroy themselves if they go out of canvas
-Object.prototype.suicide = function(){
-  if(this.x + this.w < 0 || this.x > Width)
-    return true;  
-  return false;
-}
-// every object draws itself
-Object.prototype.drawTexture = function(){
-  ctx.drawImage(this.texture, this.x, this.y, this.w, this.h);
-}
-// enemyship and projectiles movement
-Object.prototype.move = function(){
-  ((this.enemy) ? this.x -= this.speed : this.x += this.speed);  
-}
-// check collision 
-Object.prototype.checkCollision = function(elem){
-  if (this.x < elem.x + elem.w && this.x + this.w > elem.x &&
-   this.y < elem.y + elem.h && this.h + this.y > elem.y)
-    return true;
-  return false;
-}
+  projectile(){
+    let time = Date.now();
+    if(time > this.fireTime + this.fireRate){
+      this.fireTime = time;
+      projectilesArray.push(new Projectile(this.x-10,this.y+this.h/2,true,this.type));
+    }
+  }
+};
 
 function KeyListener() {
   this.pressedKeys = [];
@@ -124,12 +190,13 @@ KeyListener.prototype.addKeyPressListener = function (keyCode, callback) {
 };
 var keys = new KeyListener();
 
-function moveDraw(){
+function update(){
   // canvas base
   ctx.clearRect(0, 0, Width, Height);
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, Width, Height);
-  player.move();
+  ctx.imageSmoothingEnabled = false;
+  player.keyMove();
   player.animate();
   player.drawTexture();
   // enemies spawn
@@ -138,7 +205,7 @@ function moveDraw(){
   // see if its time to spawn a new object
   if (time > (lastSpawn + spawnRate)) {
       lastSpawn = time;
-      enemiesArray.push(new Enemy());
+      enemiesArray.push(new Enemy(enemyType()));
   }
   // enemy move, collision with player, and garbage collection
   for(var i = enemiesArray.length - 1; i >= 0; i--){
@@ -148,7 +215,7 @@ function moveDraw(){
     enemiesArray[i].drawTexture();
     if(enemiesArray[i].suicide()) enemiesArray.splice(i,1);
   }
-  // projectile movement, collision, and garbage collection
+  // projectile movement, collision(player, enemy), and garbage collection
   for(var i = projectilesArray.length - 1; i >= 0; i--){
     projectilesArray[i].move();
     if(projectilesArray[i].enemy && projectilesArray[i].checkCollision(player)) gameOVER();
@@ -168,13 +235,13 @@ function moveDraw(){
 
 function gameOVER(){
   gameOver = true;
-  console.log("Game Over")
+  console.log("Game Over");
 }
 
 function loop() {
   if(gameOver)
     return;
-  moveDraw();
+  update();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

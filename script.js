@@ -42,6 +42,8 @@ class allPrototypes {
           this.goleft = true;
       }else{   
         this.x -= this.speedX;
+        if(this.speedY)
+          this.y -= this.speedY;
       }
     }else{
       this.x += this.speedX;
@@ -100,18 +102,21 @@ class Player extends allPrototypes {
 let player = new Player();
 
 class Projectile extends allPrototypes {
-  constructor(x,y,enemy,type){
+  constructor(x,y,h,enemy,type){
     super();
     this.h = 7;
-    this.x = x;
-    this.y = y;
+    this.x = x-10;
+    this.y = y+h/2;
     if(enemy){
       this.enemy = true;
       if(type == shiptype.cruiser){
         this.h = 16;
         this.w = 20;
-        this.speedX = 4;
-        this.speedY = 2;
+        this.thrust = 4;
+        let tx = player.x - x, ty = player.y - y,
+        dist = Math.sqrt(tx*tx+ty*ty);
+        this.speedX = -(tx/dist)*this.thrust;
+        this.speedY = -(ty/dist)*this.thrust;
         this.texture = texture.cruiserProj;
       }else{  
         this.speedX = 7;
@@ -164,7 +169,7 @@ class Enemy extends allPrototypes {
     let time = Date.now();
     if(time > this.fireTime + this.fireRate){
       this.fireTime = time;
-      projectilesArray.push(new Projectile(this.x-10,this.y+this.h/2,true,this.type));
+      projectilesArray.push(new Projectile(this.x-10,this.y,this.h,true,this.type));
     }
   }
 };

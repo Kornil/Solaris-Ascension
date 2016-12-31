@@ -4,6 +4,7 @@ const Height = 500, Width = 950,
   c = document.getElementById("canvas"), ctx = c.getContext("2d"),
   texture = {
     playerIdle1: document.getElementById("playership"),
+    playerDeath: document.getElementById("damagedPlayership"),
     playerIdle2: document.getElementById("playership2"),
     playerTurbo: document.getElementById("playershipTurbo"),
     playerSlow: document.getElementById("playershipSlow"),
@@ -22,7 +23,7 @@ const Height = 500, Width = 950,
     corvette: "corvette",
   };
 
-let projectilesArray = [], gameOver = false, enemiesArray = [], lastSpawn = 0, // <-- time since last ship, global
+let player, projectilesArray = [], gameOver = true, enemiesArray = [], lastSpawn = 0, // <-- time since last ship, global
   enemyNum = Math.floor((Math.random() * 25) + 75); // between 75-100 enemies, NOT USED
 
 // abstract class
@@ -119,7 +120,6 @@ class Player extends allPrototypes {
     }
   };
 };
-let player = new Player();
 
 class Projectile extends allPrototypes {
   constructor(x,y,h,enemy,type){
@@ -270,17 +270,48 @@ function update(){
     }
     projectilesArray[i].drawTexture(); 
     if(projectilesArray[i].suicide()) projectilesArray.splice(i,1);
-  }  
+  }
+  if(gameOver){
+    player.texture = texture.playerDeath;    
+    player.drawTexture(); 
+    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillRect(0, 0, Width, Height);    
+    ctx.font = "16px Inconsolata";
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.fillText("Click anywhere to start a new game.",Width/2,Height/2+50);
+    ctx.fillStyle = "#f00";
+    ctx.textAlign = "center";
+    ctx.font = "36px Inconsolata";
+    ctx.fillText("YOUR SHIP WAS DESTROYED!",Width/2,Height/2);
+  }
 }
 
-function gameOVER(){
+let gameOVER; (gameOVER = function gameOVER(){
+  if(!gameOver) console.log("Game Over");
+  else {
+    ctx.clearRect(0, 0, Width, Height);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, Width, Height);
+  }
   gameOver = true;
-  console.log("Game Over");
-}
+  document.addEventListener("click", newGame);
+  ctx.font = "16px Inconsolata";
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.fillText("Click anywhere to start a new game.",Width/2,Height/2+50);
+})();
 
-(function loop() {
+function newGame(){
+  document.removeEventListener('click', newGame, false);
+  player = new Player();
+  projectilesArray = [], gameOver = false, enemiesArray = [], lastSpawn = 0;
+  loop();
+};
+
+function loop() {
   if(gameOver)
     return;
   update();
   requestAnimationFrame(loop);
-})();
+};

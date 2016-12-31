@@ -110,7 +110,7 @@ class Player extends allPrototypes {
     }
     if ((keys.isPressed(87) || keys.isPressed(38)) && this.y > 0) this.y -= this.speed; // UP
     if ((keys.isPressed(83) || keys.isPressed(40)) && this.y + this.h < Height) this.y += this.speed; // DOWN
-    // shoot every x ms if spacebar pressed
+    // shoot every x(weaponDelay) ms if spacebar pressed
     if(keys.isPressed(32)){
       let date = Date.now();
       if(date > this.shootDate + this.weaponDelay){
@@ -131,7 +131,7 @@ class Projectile extends allPrototypes {
       if(type === shiptype.cruiser){
         this.h = 16;
         this.w = 20;        
-        this.thrust = 4;
+        this.thrust = 5;
         this.texture = texture.cruiserProj;
       }else if(type === shiptype.frigate){
         this.h = 7;
@@ -170,7 +170,7 @@ class Enemy extends allPrototypes {
       this.h = 62;
       this.speedX = 0.5;
       this.speedY = 0.5;
-      this.fireRate = 3500;
+      this.fireRate = 3000;
       this.maxHP = 5; // <- 5 shots to take down
       this.hp = this.maxHP-1; // count from zero, used to change texture model on damage
       this.goleft = true;
@@ -190,7 +190,7 @@ class Enemy extends allPrototypes {
     }else if(type === shiptype.corvette){
       this.w = 20;
       this.h = 16;
-      this.speedX = 5;
+      this.speedX = 6;
       this.texture = texture.corvette;
     }
     this.x = Width-10;
@@ -275,14 +275,11 @@ function update(){
     player.texture = texture.playerDeath;    
     player.drawTexture(); 
     ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-    ctx.fillRect(0, 0, Width, Height);    
-    ctx.font = "16px Inconsolata";
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
+    ctx.fillRect(0, 0, Width, Height);  
+    ctx.textAlign = "center";  
+    ctx.font = "16px Inconsolata"; ctx.fillStyle = "#fff";
     ctx.fillText("Click anywhere to start a new game.",Width/2,Height/2+50);
-    ctx.fillStyle = "#f00";
-    ctx.textAlign = "center";
-    ctx.font = "36px Inconsolata";
+    ctx.font = "36px Inconsolata"; ctx.fillStyle = "#f00";
     ctx.fillText("YOUR SHIP WAS DESTROYED!",Width/2,Height/2);
   }
 }
